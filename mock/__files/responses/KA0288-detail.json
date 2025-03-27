@@ -1,0 +1,10 @@
+{
+	"aircraft_type": "Boeing 777",
+	"flight_number": "KA0288",
+	"in_flight_entertainment": true,
+	"meal_options": [
+		"Chicken",
+		"Fish",
+		"Vegetarian"
+	]
+}

@@ -1,0 +1,9 @@
+{
+	"aircraft_type": "Airbus A380",
+	"flight_number": "KA0287",
+	"in_flight_entertainment": true,
+	"meal_options": [
+		"Vegetarian",
+		"Beef"
+	]
+}

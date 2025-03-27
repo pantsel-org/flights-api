@@ -1,0 +1,79 @@
+name: Contract Mock Testing
+
+on:
+  workflow_call:
+    inputs:
+      inso_version:
+        description: 'Inso version'
+        type: string
+        default: '10.3.0'
+      insomnia_file:
+        description: 'Insomnia file path'
+        type: string
+        default: 'insomnia/insomnia-flights.json'
+      insomnia_environment:
+        description: 'Insomnia environment'
+        type: string
+        default: 'env_16778d2581'
+      insomnia_workspace:
+        description: 'Insomnia workspace'
+        type: string
+        default: 'wrk_c8b1a4'
+      openapi_file:
+        description: 'OpenAPI file path'
+        type: string
+        default: 'flights/openapi.yaml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Mock testing with inso, schemathesis and wiremock
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Inso
+        run: |
+          curl -L -o inso-linux-${{ inputs.inso_version }}.tar.xz https://github.com/Kong/insomnia/releases/download/core%40${{ inputs.inso_version }}/inso-linux-${{ inputs.inso_version }}.tar.xz
+          mkdir -p inso-${{ inputs.inso_version }}-linux
+          tar -xJf inso-linux-${{ inputs.inso_version }}.tar.xz -C inso-${{ inputs.inso_version }}-linux
+          # sudo mv inso-${{ inputs.inso_version }}-linux/inso /usr/local/bin/inso
+
+      - name: Setup Wiremock
+        id: setup-wiremock
+        run: |
+          container_id=$(docker run -d --rm \
+          -p 8080:8080 \
+          --name wiremock \
+          -v ${{ github.workspace }}/mock:/home/wiremock \
+          wiremock/wiremock:3.10.0)
+          echo "container_id=$container_id" >> $GITHUB_ENV
+      
+      - name: Get the WireMock standard output
+        run: echo "${{ steps.setup-wiremock.outputs.wiremock-stdout }}"
+
+      # TODO: Modify the inso environment variable to point to Kong Gateway
+      # and configure the Kong Gateway to point to the Wiremock server.
+      - name: Run Inso
+        run: |
+          # ${{ github.workspace }}/inso-${{ inputs.inso_version }}-linux/inso run collection -w ${{ inputs.insomnia_file }} ${{ inputs.insomnia_workspace }} -e ${{ inputs.insomnia_environment }}
+          inso run collection -w ${{ inputs.insomnia_file }} ${{ inputs.insomnia_workspace }} -e ${{ inputs.insomnia_environment }}
+        working-directory: ${{ github.workspace }}
+
+      - name: Contract testing flights
+        uses: schemathesis/action@v1
+        with:
+          schema: flights/openapi.yaml
+          base-url: http://localhost:8080
+      
+      - name: Stop Wiremock
+        if: always()
+        run: |
+          docker stop ${{ env.container_id }}
+      
+      

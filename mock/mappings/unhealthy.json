@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/health",
+    "headers": {
+      "Status": {
+        "equalTo": "unhealthy"
+      }
+    }
+  },
+
+  "response": {
+    "status": 200,
+    "bodyFileName": "responses/health.json",
+    "headers": {
+        "Content-Type": "application/json; charset=UTF-8"
+    }
+  }
+}

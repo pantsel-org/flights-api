@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/flights/(KA0(28[4-9]|29[0-3]))/details"
+  },
+
+  "response": {
+    "status": 200,
+    "bodyFileName": "responses/{{request.pathSegments.[1]}}-detail.json",
+    "headers": {
+        "Content-Type": "application/json; charset=UTF-8"
+    },
+    "transformers": ["response-template"]
+  }
+}

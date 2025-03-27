@@ -1,0 +1,328 @@
+{
+    "_type": "export",
+    "__export_format": 4,
+    "__export_date": "2025-01-30T16:47:05.817Z",
+    "__export_source": "insomnia.desktop.app:v10.3.0",
+    "resources":
+    [
+        {
+            "_id": "req_96a130153113458fa702f1b2b6e477d9",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1738255213113,
+            "created": 1733217771166,
+            "url": "{{ _.base_url }}/flights/KA0284/details",
+            "name": "Fetch more details about a flight",
+            "description": "Fetch more details about a flight",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771166,
+            "isPrivate": false,
+            "pathParameters":
+            [],
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 200', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n\n// Test: Every element has a \"aricraft_type\" attribute\ninsomnia.test('Flight has \"aricraft_type\" attribute', () => {\n  insomnia.expect(responseBody).to.have.property('aircraft_type');\n});\n\n// Test: Every element has a \"flight_number\" attribute\ninsomnia.test('Filght has a valid \"flight_number\" attribute', () => {\n  insomnia.expect(responseBody).to.have.property('flight_number');\n  insomnia.expect(responseBody).property('flight_number').to.match(/^KA\\d{4}$/);\n});\n\n// Test: Every element has a boolean \"in_flight_entertainment\" attribute\ninsomnia.test('Each element has a valid \"in_flight_entertainment\" attribute', () => {\n    insomnia.expect(responseBody).to.have.property('in_flight_entertainment');\n    insomnia.expect(responseBody).property('in_flight_entertainment').to.be.oneOf([true,false]);\n});\n\n// Test: Every element has a \"meal_options\" attribute\ninsomnia.test('Each element has a valid \"meal_options\" attribute', () => {\n    insomnia.expect(responseBody).to.have.property('meal_options');\n\t\tinsomnia.expect(responseBody).property('meal_options').to.be.an('array')\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "parentId": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "modified": 1733217771155,
+            "created": 1733217771155,
+            "name": "flight-data",
+            "description": "",
+            "environment":
+            {},
+            "environmentPropertyOrder": null,
+            "metaSortKey": -1733217771155,
+            "_type": "request_group"
+        },
+        {
+            "_id": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "parentId": null,
+            "modified": 1733218287702,
+            "created": 1733217205217,
+            "name": "KongAir Flights API",
+            "description": "",
+            "scope": "design",
+            "_type": "workspace"
+        },
+        {
+            "_id": "req_7374689da40c447a86430ce727103f2f",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1738231139442,
+            "created": 1738231046758,
+            "url": "{{ _.base_url }}/flights/HU123456789/details",
+            "name": "Fetch more details about a flight (not found)",
+            "description": "Fetch more details about a flight",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771163.5,
+            "isPrivate": false,
+            "pathParameters":
+            [],
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 404', () => {\n  insomnia.expect(insomnia.response.code).to.eql(404);\n});\n\n// Test: Message with flight not found\ninsomnia.test('Flight not found', () => {\n  insomnia.expect(responseBody).to.have.property('message');\n  insomnia.expect(responseBody).property('message').to.eql('Flight not found');\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_d909074353214bdca5369e288bbb3109",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1738255217827,
+            "created": 1733217771161,
+            "url": "{{ _.base_url }}/flights/KA0284",
+            "name": "Get a specific flight by flight number",
+            "description": "Returns a specific flight given its flight number\n",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771161,
+            "isPrivate": false,
+            "pathParameters":
+            [],
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 200', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n\n// Test: Every element has a \"number\" attribute starting with \"KA\" followed by four digits\ninsomnia.test('Flight has a valid \"number\" attribute', () => {\n  insomnia.expect(responseBody).to.have.property('number');\n  insomnia.expect(responseBody).property('number').to.match(/^KA\\d{4}$/);\n});\n\n// Test: Every element has a \"route_id\" attribute matching pattern \"XXX-XXX\"\ninsomnia.test('Filght has a valid \"route_id\" attribute', () => {\n  insomnia.expect(responseBody).to.have.property('route_id');\n  insomnia.expect(responseBody).property('route_id').to.match(/^[A-Z]{3}-[A-Z]{3}$/);\n});\n\n// Test: Every element has a \"scheduled_arrival\" attribute\ninsomnia.test('Each element has a \"scheduled_arrival\" attribute', () => {\n    insomnia.expect(responseBody).to.have.property('scheduled_arrival');\n    insomnia.expect(responseBody).property('scheduled_arrival').to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);\n});\n\n// Test: Every element has a \"scheduled_departure\" attribute\ninsomnia.test('Each element has a \"scheduled_departure\" attribute', () => {\n    insomnia.expect(responseBody).to.have.property('scheduled_departure');\n    insomnia.expect(responseBody).property('scheduled_departure').to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_cfc1d284f6d849b6b72332505b57e6c5",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1738231030850,
+            "created": 1738230598881,
+            "url": "{{ _.base_url }}/flights/HU123456789",
+            "name": "Get a specific flight by flight number (not found)",
+            "description": "Returns a specific flight given its flight number\n",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771160.5,
+            "isPrivate": false,
+            "pathParameters":
+            [],
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 404', () => {\n  insomnia.expect(insomnia.response.code).to.eql(404);\n});\n\n// Test: Message with flight not found\ninsomnia.test('Flight not found', () => {\n  insomnia.expect(responseBody).to.have.property('message');\n  insomnia.expect(responseBody).property('message').to.eql('Flight not found');\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_0e26d8edf15049d9b1a0abd2dad221e1",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1733228325242,
+            "created": 1733217771160,
+            "url": "{{ _.base_url }}/flights",
+            "name": "Get KongAir planned flights",
+            "description": "Returns all the scheduled flights for a given day\n",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [
+                {
+                    "name": "date",
+                    "disabled": true,
+                    "value": "string"
+                }
+            ],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771160,
+            "isPrivate": false,
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 200', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n\n// Test: The response is an array\ninsomnia.test('Response is an array', () => {\n  insomnia.expect(responseBody).to.be.an('array');\n});\n\n// Test: Every element has a \"number\" attribute starting with \"KA\" followed by four digits\ninsomnia.test('Each element has a valid \"number\" attribute', () => {\n  responseBody.forEach((flight) => {\n    insomnia.expect(flight).to.have.property('number');\n    insomnia.expect(flight.number).to.match(/^KA\\d{4}$/);\n  });\n});\n\n// Test: Every element has a \"route_id\" attribute matching pattern \"XXX-XXX\"\ninsomnia.test('Each element has a valid \"route_id\" attribute', () => {\n  responseBody.forEach((flight) => {\n    insomnia.expect(flight).to.have.property('route_id');\n    insomnia.expect(flight.route_id).to.match(/^[A-Z]{3}-[A-Z]{3}$/);\n  });\n});\n\n// Test: Every element has a \"scheduled_arrival\" attribute\ninsomnia.test('Each element has a \"scheduled_arrival\" attribute', () => {\n  responseBody.forEach((flight) => {\n    insomnia.expect(flight).to.have.property('scheduled_arrival');\n    insomnia.expect(flight.scheduled_arrival).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);\n  });\n});\n\n// Test: Every element has a \"scheduled_departure\" attribute\ninsomnia.test('Each element has a \"scheduled_departure\" attribute', () => {\n  responseBody.forEach((flight) => {\n    insomnia.expect(flight).to.have.property('scheduled_departure');\n    insomnia.expect(flight.scheduled_departure).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);\n  });\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_d73c66aba18e440abbfed1fb70b80b81",
+            "parentId": "fld_c7a1c734a08a48b8bf5dec38794f60d2",
+            "modified": 1738231202179,
+            "created": 1733217771157,
+            "url": "{{ _.base_url }}/health",
+            "name": "Health check endpoint for Kubernetes",
+            "description": "Endpoint that returns the service health status.",
+            "method": "GET",
+            "body":
+            {},
+            "parameters":
+            [],
+            "headers":
+            [],
+            "authentication":
+            {},
+            "metaSortKey": -1733217771157,
+            "isPrivate": false,
+            "afterResponseScript": "const responseBody = insomnia.response.json();\n\ninsomnia.test('Status is 200', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n\n// Test: Message with flight not found\ninsomnia.test('Status Ok', () => {\n  insomnia.expect(responseBody).to.have.property('status');\n  insomnia.expect(responseBody).property('status').to.eql('OK');\n});",
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "env_dbbc37a76e854db16b89fbd2a2af98f05b50edc4",
+            "parentId": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "modified": 1738255579716,
+            "created": 1733217205220,
+            "name": "Base Environment",
+            "data":
+            {
+                "base_url": "{{ _.scheme }}://{{ _.host }}{{ _.base_path }}"
+            },
+            "dataPropertyOrder":
+            {
+                "&":
+                [
+                    "base_url"
+                ]
+            },
+            "color": null,
+            "isPrivate": false,
+            "metaSortKey": 1733217205220,
+            "environmentType": "kv",
+            "_type": "environment"
+        },
+        {
+            "_id": "jar_dbbc37a76e854db16b89fbd2a2af98f05b50edc4",
+            "parentId": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "modified": 1738255579713,
+            "created": 1733217205220,
+            "name": "Default Jar",
+            "cookies":
+            [],
+            "_type": "cookie_jar"
+        },
+        {
+            "_id": "spc_4fbd054dd74c4415a21616ef744d0329",
+            "parentId": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "modified": 1733218287699,
+            "created": 1733217205219,
+            "fileName": "KongAir Flights API",
+            "contents": "---\n# OpenAPI Spec for the KongAir Flights service\nopenapi: 3.0.0\n\ninfo:\n  description: KongAir Flights service provides the scheduled flights for KongAir\n  version: 0.1.0\n  title: Flights Service\n  contact:\n    name: Kong, Inc.\n\nservers:\n- url: https://api.kong-air.com\n  description: KongAir API Server\n \n \ntags:\n  - name: flight-data\n\npaths:\n  /health:\n    get:\n      operationId: get-health\n      summary: Health check endpoint for Kubernetes\n      description: Endpoint that returns the service health status.\n      tags:\n      - flight-data\n      responses:\n        '200':\n          description: Service is healthy\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: \"OK\"\n          headers:\n           hostname:\n             description: \"The hostname of the machine fulfilling the request.\"\n             schema:\n               type: string\n        '500':\n          description: Service is unhealthy\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: \"unhealthy\"\n  \"/flights\":\n    get:\n      summary: Get KongAir planned flights\n      description: |\n        Returns all the scheduled flights for a given day\n      tags:\n      - flight-data\n      operationId: get-flights\n      parameters:\n        - name: date\n          in: query\n          description: Filter by date (defaults to current day)\n          required: false\n          style: form\n          example: 2024-03-20\n          schema:\n            type: string\n            format: date\n      responses:\n        '200':\n          description: Successful respone with scheduled flights\n          headers:\n           hostname:\n             description: \"The hostname of the machine fulfilling the request.\"\n             schema:\n               type: string\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: '#/components/schemas/Flight'\n              examples:\n                Example Flights List:\n                  value: \n                    - number: KD924\n                      route_id: LHR-SFO\n                      scheduled_departure: \"2024-03-20T09:12:28Z\"\n                      scheduled_arrival: \"2024-03-20T19:12:28Z\"\n                    - number: KD925\n                      route_id: SFO-LHR\n                      scheduled_departure: \"2024-03-21T09:12:28Z\"\n                      scheduled_arrival: \"2024-03-21T19:12:28Z\"\n\n  \"/flights/{flightNumber}\":\n    get:\n      summary: Get a specific flight by flight number\n      description: |\n        Returns a specific flight given its flight number\n      tags:\n      - flight-data\n      operationId: get-flight-by-number\n      parameters:\n        - name: flightNumber\n          in: path\n          description: The flight number\n          required: true\n          style: simple\n          example: KA0284\n          schema:\n            type: string\n      responses:\n        '200':\n          description: Successful response with the requested flight\n          headers:\n           hostname:\n             description: \"The hostname of the machine fulfilling the request.\"\n             schema:\n               type: string\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Flight'\n              examples:\n                Example Flight KD924:\n                  value:\n                      number: KD924\n                      route_id: LHR-SFO\n                      scheduled_departure: \"2024-03-20T09:12:28Z\"\n                      scheduled_arrival: \"2024-03-20T19:12:28Z\"\n        '400':\n          description: Invalid format for parameter\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  message:\n                    type: string\n                    example: \"Invalid format for parameter flightNumber: error unescaping path parameter 'flightNumber': invalid URL escape \\\"%\\\"\"\n        '404':\n          description: Flight not found\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  message:\n                    type: string\n\n  \"/flights/{flightNumber}/details\":\n    get:\n      summary: Fetch more details about a flight\n      description: Fetch more details about a flight\n      tags:\n      - flight-data\n      operationId: get-flight-details\n      parameters:\n      - name: flightNumber\n        in: path\n        description: The flight number\n        required: true\n        style: simple\n        example: KA0284\n        schema:\n          type: string\n      responses:\n        '200':\n          description: Successful response with the requested flight details\n          headers:\n           hostname:\n             description: \"The hostname of the machine fulfilling the request.\"\n             schema:\n               type: string\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/FlightDetails'\n        '400':\n          description: Invalid format for parameter\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  message:\n                    type: string\n                    example: \"Invalid format for parameter flightNumber: error unescaping path parameter 'flightNumber': invalid URL escape \\\"%\\\"\"\n        '404':\n          description: Flight not found\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  message:\n                    type: string\n\ncomponents:\n  schemas:\n    Flight:\n      type: object\n      properties:\n        number:\n          type: string\n        route_id:\n          type: string\n        scheduled_departure:\n          type: string\n          format: date-time\n        scheduled_arrival:\n          type: string\n          format: date-time\n      required:\n        - number\n        - route_id\n        - scheduled_departure\n        - scheduled_arrival\n    FlightDetails:\n      type: object\n      properties:\n        flight_number:\n          type: string\n        in_flight_entertainment:\n          type: boolean\n        meal_options:\n          type: array\n          items:\n            type: string\n        aircraft_type:\n          type: string\n      required:\n        - flight_number\n        - in_flight_entertainment\n        - meal_options\n        - aircraft_type",
+            "contentType": "yaml",
+            "_type": "api_spec"
+        },
+        {
+            "_id": "uts_19d737ac0d374b20b59ea68b18f6f4b1",
+            "parentId": "wrk_c8b1a4ccc7d746c383b581c608a2358d",
+            "modified": 1738244312021,
+            "created": 1738244312021,
+            "name": "New Suite",
+            "metaSortKey": -1738244312021,
+            "_type": "unit_test_suite"
+        },
+        {
+            "_id": "env_16778d2581fe45d0bebd1099fe28c51e",
+            "parentId": "env_dbbc37a76e854db16b89fbd2a2af98f05b50edc4",
+            "modified": 1733318735816,
+            "created": 1733217771154,
+            "name": "OpenAPI env api.kong-air.com",
+            "data":
+            {
+                "scheme": "https",
+                "base_path": "",
+                "host": "api.kong-air.com",
+                "flightNumber": "KA0284"
+            },
+            "dataPropertyOrder":
+            {
+                "&":
+                [
+                    "scheme",
+                    "base_path",
+                    "host",
+                    "flightNumber"
+                ]
+            },
+            "color": null,
+            "isPrivate": false,
+            "metaSortKey": 1733217771154,
+            "environmentType": "json",
+            "kvPairData":
+            [],
+            "_type": "environment"
+        },
+        {
+            "_id": "env_22dccede13174b9fbfd9a1bf8e26519c",
+            "parentId": "env_dbbc37a76e854db16b89fbd2a2af98f05b50edc4",
+            "modified": 1738255579715,
+            "created": 1733223011269,
+            "name": "Wiremock Recording",
+            "data":
+            {
+                "scheme": "https",
+                "base_path": "",
+                "host": "api.kong-air.com",
+                "flightNumber": "KA0284"
+            },
+            "dataPropertyOrder":
+            {
+                "&":
+                [
+                    "scheme",
+                    "base_path",
+                    "host",
+                    "flightNumber"
+                ]
+            },
+            "color": null,
+            "isPrivate": false,
+            "metaSortKey": 1733218070747,
+            "environmentType": "json",
+            "kvPairData":
+            [],
+            "_type": "environment"
+        }
+    ]
+}

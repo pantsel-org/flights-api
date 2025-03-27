@@ -1,0 +1,73 @@
+name: OAS linting
+
+on:
+  workflow_call:
+    inputs:
+      openapi_spec:
+        description: "Path to the OpenAPI Specification file"
+        required: true
+        type: string
+        default: "flights/openapi.yaml"
+      environment:
+        description: "Environment to deploy to"
+        type: string
+        default: "dev"
+
+jobs:
+  publish-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y_%m_%dT%H_%M_%S')" >> $GITHUB_ENV
+        
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load environment configuration
+        uses: ./.github/actions/load-config
+        with:
+          environment: ${{ inputs.environment }}
+      
+      - name: Install Spectral
+        run: |
+          npm install -g @stoplight/spectral
+
+      - name: Install extra rulesets for Spectral
+        run: |
+          npm install --save -D @stoplight/spectral-owasp-ruleset@^2.0
+
+      - name: Read OAS into an environment variable
+        id: oas-to-env
+        run: |
+          # Read the YAML file and convert to JSON string
+          oas_json=$(yq eval -o=json ${{ github.workspace }}/${{ inputs.openapi_spec }} | jq -c .)
+
+          # Set as env variable
+          echo "DECK_CONFIG_API_SPEC=${oas_json}" >> $GITHUB_ENV
+
+      - name: Patch OAS servers
+        run: |
+          # Since this pipeline is for configuring the gateway, 
+          # we need to use the custom x-internal-server provided in the OAS
+          # and remove the existing servers.
+          x_internal_server=$(yq eval '.["x-internal-server"].url' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+          yq e -i '.servers = [{"url": "'$x_internal_server'", "description": "production internal hostname for the API gateway", "x-internal": true}]' ${{ github.workspace }}/${{ inputs.openapi_spec }}
+
+          cat ${{ github.workspace }}/${{ inputs.openapi_spec }}
+
+      - name: Lint OpenAPI Specification
+        run: spectral lint  ${{ github.workspace }}/${{ inputs.openapi_spec }} --ruleset .spectral.yaml -o oas_lint_results_${{ env.NOW }}.txt
+        working-directory: ${{ github.workspace }}/examples/apiops
+
+      - name: Show linting results
+        if: always()
+        run: cat oas_lint_results_${{ env.NOW }}.txt
+        working-directory: ${{ github.workspace }}/examples/apiops
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: |
+            ${{ github.workspace }}/examples/apiops/oas_lint_results_${{ env.NOW }}.txt

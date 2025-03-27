@@ -1,0 +1,66 @@
+name: OAS Breaking Changes
+
+on:
+  workflow_call:
+    inputs:
+      openapi_spec:
+        description: "Path to the OpenAPI Specification file"
+        required: true
+        type: string
+        default: "flights/openapi.yaml"
+      environment:
+        description: "Environment to deploy to"
+        type: string
+        default: "dev"
+
+jobs:
+  publish-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y_%m_%dT%H_%M_%S')" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Load environment configuration
+        uses: ./.github/actions/load-config
+        with:
+          environment: ${{ inputs.environment }}
+
+      - name: Base OAS
+        run: |
+          git show HEAD~1:${{ inputs.openapi_spec }} > ${{ github.workspace }}/base.yaml
+
+      - name: Check OAS breaking changes
+        uses: oasdiff/oasdiff-action/breaking@main
+        id: oasdiff # Static ID
+        with:
+          base: ${{ github.workspace }}/base.yaml
+          revision: ${{ github.workspace }}/${{ inputs.openapi_spec }}
+
+      - name: Show breaking changes
+        run: echo "${{ steps.oasdiff.outputs.breaking }}"
+
+      - name: Save breaking changes
+        run: echo "${{ steps.oasdiff.outputs.breaking }}" > ${{ github.workspace }}/examples/apiops/oas_breaking_changes_${{ env.NOW }}.txt
+
+      - name: Create Issue on Breaking Change
+        if: steps.oasdiff.outputs.breaking != 'No breaking changes'
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_NAME: "Flights API"
+          BREAKING_CHANGES: ${{ steps.oasdiff.outputs.breaking }}
+        with:
+          filename: .github/ISSUE_TEMPLATE/breaking-change.md
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: |
+            ${{ github.workspace }}/examples/apiops/oas_breaking_changes_${{ env.NOW }}.txt
