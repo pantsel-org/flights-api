@@ -1,0 +1,105 @@
+name: Generate Kong Gateway Configuration
+description: Generate Kong Gateway Configuration from OpenAPI Specification
+
+inputs:
+  openapi_spec:
+    description: "Path to the OpenAPI Specification file"
+    required: true
+    default: "flights/openapi.yaml"
+  environment:
+    description: "Environment to deploy to"
+    default: "dev"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup env variables from OAS custom fields
+      shell: bash
+      run: |
+
+        # Set the API Name
+        api_name=$(yq eval '.info.x-api-name' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+        echo "DECK_API_NAME=$api_name" >> $GITHUB_ENV
+
+        # Set the Organization/BU
+        organization=$(yq eval '.info.x-business-unit' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+        echo "DECK_ORGANIZATION=$organization" >> $GITHUB_ENV
+
+        # Set the team responsible for the API
+        team=$(yq eval '.info.x-team-name' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+        echo "DECK_CONFIG_OWNER=$team" >> $GITHUB_ENV
+
+        # Set the namespace if available
+        namespace=$(yq eval '.["x-kong-namespace"]' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+        if [ ! -z "$namespace" ]; then
+          echo "DECK_NAMESPACE=$namespace" >> $GITHUB_ENV
+        fi
+
+    - name: Read OAS into an environment variable
+      shell: bash
+      id: oas-to-env
+      run: |
+        # Read the YAML file and convert to JSON string
+        oas_json=$(yq eval -o=json ${{ github.workspace }}/${{ inputs.openapi_spec }} | jq -c .)
+
+        # Set as env variable
+        echo "DECK_CONFIG_API_SPEC=${oas_json}" >> $GITHUB_ENV
+
+    - name: Patch OAS servers
+      shell: bash
+      run: |
+        # Since this pipeline is for configuring the gateway, 
+        # we need to use the custom x-internal-server provided in the OAS
+        # and remove the existing servers.
+        x_internal_server=$(yq eval '.["x-internal-server"].url' ${{ github.workspace }}/${{ inputs.openapi_spec }})
+        yq e -i '.servers = [{"url": "'$x_internal_server'", "description": "production internal hostname for the API gateway", "x-internal": true}]' ${{ github.workspace }}/${{ inputs.openapi_spec }}
+
+        cat ${{ github.workspace }}/${{ inputs.openapi_spec }}
+
+    - name: Convert OpenAPI Specification to Kong Gateway configuration
+      shell: bash
+      run: |
+        cat ${{ github.workspace }}/${{ inputs.openapi_spec }} | deck file openapi2kong > kong.yaml
+        cat kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    # Those could be governance plugins coming from a central repository of artifacts
+    - name: Add plugins to Kong Gateway configuration
+      shell: bash
+      run: |
+        cat kong.yaml | deck file add-plugins \
+          plugins/openid-connect.yaml \
+          plugins/oas-validation.yaml \
+          plugins/prom.yaml \
+          plugins/rate-limiting.yaml -o kong.yaml
+        cat kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    - name: Add select_tags patch to Kong Gateway configuration
+      shell: bash
+      run: |
+        cat kong.yaml | deck file patch patches/select_tags.yaml -o kong.yaml
+        cat kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    - name: Add namespace to Kong Gateway configuration if required
+      shell: bash
+      if: ${{ env.DECK_NAMESPACE && env.DECK_NAMESPACE != '/' && env.DECK_NAMESPACE != 'null' }}
+      run: |
+        cat kong.yaml | deck file namespace --path-prefix=${{ env.DECK_NAMESPACE }} -o kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    - name: Output Kong Gateway configuration
+      shell: bash
+      run: cat kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    - name: Validate Generated Kong Gateway configuration
+      shell: bash
+      run: deck file validate kong.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops
+
+    - name: Kong linting
+      shell: bash
+      run: deck file lint -s kong.yaml kong-lint-ruleset.yaml
+      working-directory: ${{ github.workspace }}/examples/apiops

@@ -28,7 +28,7 @@ runs:
           UPPER_VAR=${VAR^^}
           echo "${UPPER_VAR}=${VALUE}" >> $GITHUB_ENV
           case $VAR in
-            vault_addr|vault_token|konnect_region|konnect_personal_access_token|env_name)
+            vault_addr|vault_token|konnect_region|env_name)
               TF_VAR_NAME="TF_VAR_${VAR}"
               echo "${TF_VAR_NAME}=${VALUE}" >> $GITHUB_ENV
               ;;

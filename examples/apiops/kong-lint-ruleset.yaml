@@ -7,14 +7,16 @@ rules:
       function: pattern
       functionOptions:
         match: "^http$"
-  # route-https-check:
-  #   description: "Ensure https usage in Kong GW Routes, except for acme-dummy-service"
-  #   given: $.services[?(@.name != "acme-dummy-service")].routes[*].protocols[*]
-  #   severity: error
-  #   then:
-  #     function: enumeration
-  #     functionOptions:
-  #       values: "https"
+
+  route-https-check:
+    description: "Ensure https usage in Kong GW Routes, except for acme-dummy-service"
+    given: $.services[?(@.name != "acme-dummy-service")].routes[*].protocols[*]
+    severity: error
+    then:
+      function: enumeration
+      functionOptions:
+        values: "https"
+
   allowed-plugin-check:
     description: "Ensure all plugins present are part of the allowed list for Kong GW Services"
     given: "$.services[*].plugins[*].name"
@@ -23,6 +25,7 @@ rules:
       function: pattern
       functionOptions:
         match: "openid-connect|oas-validation|rate-limiting-advanced|prometheus"
+
   svc-plugin-check-check-list:
     description: "Ensure all plugins present are enabled for Kong GW Services"
     given: "$.services[*].plugins[*].enabled"
@@ -31,11 +34,36 @@ rules:
       function: pattern
       functionOptions:
         match: "^true$"
-  # acme-global-plugin:
-  #   description: "Ensure the ACME global plugin is present and enabled"
-  #   given: "$.plugins[?(@.name == 'acme')].enabled"
-  #   severity: error
-  #   then:
-  #     function: pattern
-  #     functionOptions:
-  #       match: "^true$"
+
+  acme-global-plugin:
+    description: "Ensure the ACME global plugin is present and enabled"
+    given: "$.plugins[?(@.name == 'acme')].enabled"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        match: "^true$"
+
+  protocols_set:
+    description: "Ensure route protocols are set"
+    given: $.routes[*]
+    severity: error
+    then:
+      field: protocols
+      function: "schema"
+      functionOptions:
+        schema:
+          type: "array"
+          minItems: 1
+          maxItems: 1
+          items:
+            type: "string"
+            
+  protocols_https_only:
+    description: "Ensure https usage in Kong GW Routes"
+    given: $.routes[*].protocols[0]
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        match: "^https$"

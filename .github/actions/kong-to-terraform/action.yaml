@@ -1,0 +1,94 @@
+name: 'Generate Terraform Kong configuration'
+description: 'Generate Terraform Kong configuration'
+inputs:
+  kong_config:
+    description: 'Path to the provisioning config file'
+    required: true
+  control_plane_id:
+    description: 'Kong Konnect control plane ID'
+    required: true
+  resource_type:
+    description: 'Resource type to provision'
+    required: true
+    default: 'konnect.cp.configuration'
+  team_name:
+    description: 'Normalized team name'
+    required: true
+    default: 'kronos'
+  konnect_pat:
+    description: 'Kong Konnect personal access token'
+    required: true
+  s3_access_key:
+    description: 'S3 access key'
+    required: true
+  s3_secret_key:
+    description: 'S3 secret key'
+    required: true
+  
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install MinIO Client
+      uses: ./.github/actions/setup-minio-client
+
+    - name: Install vault cli
+      uses: eLco/setup-vault@v1
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 'latest'
+    
+    - name: Convert kong config to terraform resources
+      shell: bash
+      run: |
+        cat ${{ inputs.kong_config }} | deck file kong2tf --generate-imports-for-control-plane-id ${{ inputs.control_plane_id }} -o main.tf
+        cat main.tf
+      working-directory: ${{ env.TERRAFORM_DIR }}
+
+    - name: Create S3 bucket if required
+      shell: bash
+      run: |
+        ./create-minio-bucket.sh konnect ${{ inputs.resource_type }}.${{ inputs.team_name }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.s3_access_key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3_secret_key }}
+      working-directory: ${{ github.action_path }}/scripts
+
+    - name: Terraform Init
+      shell: bash
+      run: |
+        terraform init -upgrade \
+          -backend-config=config.s3.tfbackend \
+          -backend-config="bucket=${{ inputs.resource_type }}.${{ inputs.team_name }}" \
+          -backend-config="key=tfstate" \
+          -backend-config="region=main" \
+          -backend-config="access_key=${{ inputs.s3_access_key }}" \
+          -backend-config="secret_key=${{ inputs.s3_secret_key }}"
+      env:
+        TF_VAR_team: ${{ steps.fetch-team.outputs.team }}
+        TF_VAR_konnect_personal_access_token: ${{ inputs.konnect_pat }}
+      working-directory: ${{env.TERRAFORM_DIR}}
+
+    - name: Terraform Plan
+      shell: bash
+      if: ${{ inputs.action == 'provision' }}
+      run: |
+        terraform plan -out=tfplan
+      env:
+        TF_VAR_team: ${{ steps.fetch-team.outputs.team }}
+        TF_VAR_konnect_personal_access_token: ${{ inputs.konnect_pat }}
+      working-directory: ${{env.TERRAFORM_DIR}}
+
+    - name: Terraform Apply
+      shell: bash
+      if: ${{ inputs.action == 'provision' }}
+      id: tfapply
+      run: |
+        terraform apply -auto-approve tfplan
+        echo "$(terraform-bin output -json system_account_access_tokens)" > system_account_tokens.json
+      env:
+        TF_VAR_team: ${{ steps.fetch-team.outputs.team }}
+        TF_VAR_konnect_personal_access_token: ${{ inputs.konnect_pat }}
+      working-directory: ${{env.TERRAFORM_DIR}}

@@ -1,0 +1,119 @@
+name: OAS to Kong
+
+on:
+  workflow_call:
+    inputs:
+      openapi_spec:
+        description: "Path to the OpenAPI Specification file"
+        required: true
+        type: string
+        default: "flights/openapi.yaml"
+      environment:
+        description: "Environment to deploy to"
+        type: string
+        default: "dev"
+      control_plane_name:
+        description: "Kong Konnect control plane name"
+        type: string
+        required: true
+        default: "kronos-dev"
+      key_vault:
+        description: "The key vault for the api team"
+        type: string
+        required: true
+        default: "kronos-kv"
+      system_account:
+        description: "The system account to use for authentication with Konnect"
+        type: string
+        required: true
+        default: "sa-kronos"
+
+env:
+  DECK_CONFIG_OIDC_ISSUER: ${{ secrets.OIDC_ISSUER }}
+
+jobs:
+  publish-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: install deck
+        run: |
+          curl -sL https://github.com/Kong/deck/releases/download/v1.47.1/deck_1.47.1_linux_amd64.tar.gz -o deck.tar.gz
+          tar -xzf deck.tar.gz
+          sudo mv deck /usr/local/bin/deck
+          sudo chmod +x /usr/local/bin/deck
+        
+      - name: Load environment configuration
+        uses: ./.github/actions/load-config
+        with:
+          environment: ${{ inputs.environment }}
+      
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y_%m_%dT%H_%M_%S')" >> $GITHUB_ENV
+
+      - name: Convert OAS to kong
+        uses: ./.github/actions/oas-to-kong
+        with:
+          openapi_spec: ${{ inputs.openapi_spec }}
+          environment: ${{ inputs.environment }} 
+
+      # Obtain system account secret from Vault
+      - name: Import system account Token from Vault
+        id: import-token
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          token: ${{ secrets.VAULT_TOKEN }}
+          secrets: |
+            ${{ inputs.key_vault }}/data/${{ inputs.system_account }} token | SYSTEM_ACCOUNT_TOKEN ;
+
+      # apply the configuration to the control plane
+      - name: Get a backup of the previous Kong Gateway configuration
+        run: |
+          deck gateway dump \
+            --konnect-addr="${{ env.KONNECT_SERVER_URL }}" \
+            --konnect-token="${{ steps.import-token.outputs.SYSTEM_ACCOUNT_TOKEN }}" \
+            --konnect-control-plane-name="${{ inputs.control_plane_name }}" -o kong_backup_${{ env.NOW }}.yaml
+          cat kong_backup_${{ env.NOW }}.yaml
+        working-directory: ${{ github.workspace }}/examples/apiops
+
+      - name: Diff Kong Gateway configuration
+        run: |
+          deck gateway diff kong.yaml  \
+            --konnect-addr="${{ env.KONNECT_SERVER_URL }}" \
+            --konnect-token="${{ steps.import-token.outputs.SYSTEM_ACCOUNT_TOKEN }}" \
+            --konnect-control-plane-name="${{ inputs.control_plane_name }}" > diff_${{ env.NOW }}.txt
+          cat diff_${{ env.NOW }}.txt
+        working-directory: ${{ github.workspace }}/examples/apiops
+    
+      - name: Sync Kong Gateway configuration
+        run: |
+          deck gateway sync kong.yaml  \
+            --konnect-addr="${{ env.KONNECT_SERVER_URL }}" \
+            --konnect-token="${{ steps.import-token.outputs.SYSTEM_ACCOUNT_TOKEN }}" \
+            --konnect-control-plane-name="${{ inputs.control_plane_name }}"
+        working-directory: ${{ github.workspace }}/examples/apiops
+
+      - name: Get a backup of the current Kong Gateway configuration
+        run: |
+          deck gateway dump \
+            --konnect-addr="${{ env.KONNECT_SERVER_URL }}" \
+            --konnect-token="${{ steps.import-token.outputs.SYSTEM_ACCOUNT_TOKEN }}" \
+            --konnect-control-plane-name="${{ inputs.control_plane_name }}" -o kong_current_${{ env.NOW }}.yaml
+        working-directory: ${{ github.workspace }}/examples/apiops
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: |
+            ${{ github.workspace }}/examples/apiops/kong_backup_${{ env.NOW }}.yaml
+            ${{ github.workspace }}/examples/apiops/kong_current_${{ env.NOW }}.yaml
+            ${{ github.workspace }}/examples/apiops/diff_${{ env.NOW }}.txt
+
+
+
+      
